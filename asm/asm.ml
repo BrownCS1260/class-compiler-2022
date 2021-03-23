@@ -27,6 +27,8 @@ type directive =
   | Global of string
   | Extern of string
   | Label of string
+  | Align of int
+  | LeaLabel of (operand * string)
   | Mov of (operand * operand)
   | Add of (operand * operand)
   | Sub of (operand * operand)
@@ -38,9 +40,11 @@ type directive =
   | Setz of operand
   | Setl of operand
   | Jmp of string
+  | ComputedJmp of operand
   | Jz of string
   | Jnz of string
   | Call of string
+  | ComputedCall of operand
   | Ret
   | Comment of string
 
@@ -54,11 +58,21 @@ let label_name macos name = if macos then "_" ^ name else name
 
 let string_of_directive = function
   (* frontmatter *)
-  | Global l -> Printf.sprintf "global %s" (label_name macos l)
-  | Extern l -> Printf.sprintf "extern %s" (label_name macos l)
+  | Global l ->
+      Printf.sprintf
+        (if macos then "default rel\nglobal %s" else "global %s")
+        (label_name macos l)
+  | Extern l ->
+      Printf.sprintf "extern %s" (label_name macos l)
   (* labels *)
-  | Label l -> label_name macos l ^ ":"
+  | Label l ->
+      label_name macos l ^ ":"
+  | Align i ->
+      Printf.sprintf "align %d" i
   (* actual instructions *)
+  | LeaLabel (dest, label) ->
+      Printf.sprintf "\tlea %s, [%s]" (string_of_operand dest)
+        (label_name macos label)
   | Mov (dest, src) ->
       Printf.sprintf "\tmov %s, %s" (string_of_operand dest)
         (string_of_operand src)
@@ -87,9 +101,19 @@ let string_of_directive = function
       Printf.sprintf "\tsetz %s" (string_of_operand ~last_byte:true dest)
   | Setl dest ->
       Printf.sprintf "\tsetl %s" (string_of_operand ~last_byte:true dest)
-  | Jmp name -> Printf.sprintf "\tjmp %s" (label_name macos name)
-  | Jz name -> Printf.sprintf "\tjz %s" (label_name macos name)
-  | Jnz name -> Printf.sprintf "\tjnz %s" (label_name macos name)
-  | Call name -> Printf.sprintf "\tcall %s" (label_name macos name)
-  | Ret -> "\tret"
-  | Comment s -> Printf.sprintf "; %s" s
+  | Jmp name ->
+      Printf.sprintf "\tjmp %s" (label_name macos name)
+  | ComputedJmp op ->
+      Printf.sprintf "\tjmp %s" (string_of_operand op)
+  | Jz name ->
+      Printf.sprintf "\tjz %s" (label_name macos name)
+  | Jnz name ->
+      Printf.sprintf "\tjnz %s" (label_name macos name)
+  | Call name ->
+      Printf.sprintf "\tcall %s" (label_name macos name)
+  | ComputedCall op ->
+      Printf.sprintf "\tcall %s" (string_of_operand op)
+  | Ret ->
+      "\tret"
+  | Comment s ->
+      Printf.sprintf "; %s" s
