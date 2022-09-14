@@ -1,15 +1,25 @@
 open S_exp
+open Asm
 
 exception BadExpression of s_exp
 
-let compile (program : s_exp) : string =
-  match program with
+let rec compile_exp (exp : s_exp) : directive list = 
+  match exp with
   | Num n ->
-      String.concat "\n"
-        [
-          "global entry"; "entry:"; Printf.sprintf "\tmov rax, %d" n; "\tret";
-        ]
-  | e -> raise (BadExpression e)
+    [Mov (Reg Rax, Imm n)]
+  | Lst [Sym "add1"; arg] -> 
+    compile_exp arg @
+    [Add (Reg Rax, Imm 1)]
+  | Lst [Sym "sub1"; arg] -> 
+    compile_exp arg @
+    [Sub (Reg Rax, Imm 1)]
+  | _ -> raise (BadExpression exp) 
+
+let compile (program : s_exp) : string =
+  [Global "entry"; Label "entry"] @
+  compile_exp program @
+  [Ret]
+  |> List.map string_of_directive |> String.concat "\n"
 
 let compile_to_file (program : string) : unit =
   let file = open_out "program.s" in
@@ -24,3 +34,22 @@ let compile_and_run (program : string) : string =
   let r = input_line inp in
   close_in inp;
   r
+
+let rec interp_exp (exp : s_exp) : int = 
+  match exp with 
+  | Num n -> n
+  | Lst [Sym "add1"; arg] -> 
+    interp_exp arg + 1
+  | Lst [Sym "sub1"; arg] -> 
+    interp_exp arg - 1
+  | _ -> raise (BadExpression exp)
+
+let interp (program : string) : string = 
+  parse program |> interp_exp |> string_of_int
+
+let difftest (examples : string list) : bool = 
+  let results = List.map (fun ex -> (compile_and_run ex, interp ex)) examples in 
+  List.for_all (fun (lhs, rhs) -> lhs = rhs) results
+
+let test () =
+  difftest ["343"; "(add1 334)"; "(sub1 (sub1 10))"; "(sub1 0)"]

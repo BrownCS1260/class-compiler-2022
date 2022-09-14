@@ -1,4 +1,4 @@
 (library
  (name csci1260)
  (modules compile)
- (libraries s_exp))
+ (libraries s_exp asm))
