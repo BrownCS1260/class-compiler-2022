@@ -3,16 +3,26 @@ open Asm
 
 exception BadExpression of s_exp
 
+let num_shift = 2 
+let num_mask = 0b11 
+let num_tag = 0b00
+
+let bool_shift = 7 
+let bool_mask = 0b1111111
+let bool_tag = 0b0011111
+
 let rec compile_exp (exp : s_exp) : directive list = 
   match exp with
   | Num n ->
-    [Mov (Reg Rax, Imm n)]
+    [Mov (Reg Rax, Imm (n lsl num_shift))]
+  | Sym "true" -> [Mov (Reg Rax, Imm ((1 lsl bool_shift) lor bool_tag))] 
+  | Sym "false" -> [Mov (Reg Rax, Imm ((0 lsl bool_shift) lor bool_tag))]
   | Lst [Sym "add1"; arg] -> 
     compile_exp arg @
-    [Add (Reg Rax, Imm 1)]
+    [Add (Reg Rax, Imm (1 lsl num_shift))]
   | Lst [Sym "sub1"; arg] -> 
     compile_exp arg @
-    [Sub (Reg Rax, Imm 1)]
+    [Sub (Reg Rax, Imm (1 lsl num_shift))]
   | _ -> raise (BadExpression exp) 
 
 let compile (program : s_exp) : string =
@@ -34,22 +44,3 @@ let compile_and_run (program : string) : string =
   let r = input_line inp in
   close_in inp;
   r
-
-let rec interp_exp (exp : s_exp) : int = 
-  match exp with 
-  | Num n -> n
-  | Lst [Sym "add1"; arg] -> 
-    interp_exp arg + 1
-  | Lst [Sym "sub1"; arg] -> 
-    interp_exp arg - 1
-  | _ -> raise (BadExpression exp)
-
-let interp (program : string) : string = 
-  parse program |> interp_exp |> string_of_int
-
-let difftest (examples : string list) : bool = 
-  let results = List.map (fun ex -> (compile_and_run ex, interp ex)) examples in 
-  List.for_all (fun (lhs, rhs) -> lhs = rhs) results
-
-let test () =
-  difftest ["343"; "(add1 334)"; "(sub1 (sub1 10))"; "(sub1 0)"]
