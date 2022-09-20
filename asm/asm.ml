@@ -27,6 +27,8 @@ type directive =
   | Shr of (operand * operand)
   | Cmp of (operand * operand)
   | Setz of operand
+  | Jmp of string
+  | Jz of string
   | Ret
   | Comment of string
 
@@ -37,11 +39,13 @@ let run cmd args =
 
 let macos = run "uname" [ "-s" ] |> String.trim |> String.equal "Darwin"
 
+let label_name macos name = if macos then "_" ^ name else name
+
 let string_of_directive = function
   (* frontmatter *)
-  | Global l -> Printf.sprintf (if macos then "global _%s" else "global %s") l
+  | Global l -> Printf.sprintf "global %s" (label_name macos l)
   (* labels *)
-  | Label l -> Printf.sprintf (if macos then "_%s:" else "%s:") l
+  | Label l -> (label_name macos l) ^ ":"
   (* actual instructions *)
   | Mov (dest, src) ->
       Printf.sprintf "\tmov %s, %s" (string_of_operand dest)
@@ -69,5 +73,9 @@ let string_of_directive = function
         (string_of_operand src)
   | Setz dest ->
       Printf.sprintf "\tsetz %s" (string_of_operand ~last_byte:true dest)
+  | Jmp name ->
+      Printf.sprintf "\tjmp %s" (label_name macos name)
+  | Jz name ->
+      Printf.sprintf "\tjz %s" (label_name macos name)
   | Ret -> "\tret"
   | Comment s -> Printf.sprintf "; %s" s
