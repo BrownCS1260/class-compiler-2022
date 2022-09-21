@@ -38,14 +38,13 @@ let run cmd args =
   eval (run cmd args |- read_all)
 
 let macos = run "uname" [ "-s" ] |> String.trim |> String.equal "Darwin"
-
 let label_name macos name = if macos then "_" ^ name else name
 
 let string_of_directive = function
   (* frontmatter *)
   | Global l -> Printf.sprintf "global %s" (label_name macos l)
   (* labels *)
-  | Label l -> (label_name macos l) ^ ":"
+  | Label l -> label_name macos l ^ ":"
   (* actual instructions *)
   | Mov (dest, src) ->
       Printf.sprintf "\tmov %s, %s" (string_of_operand dest)
@@ -73,9 +72,7 @@ let string_of_directive = function
         (string_of_operand src)
   | Setz dest ->
       Printf.sprintf "\tsetz %s" (string_of_operand ~last_byte:true dest)
-  | Jmp name ->
-      Printf.sprintf "\tjmp %s" (label_name macos name)
-  | Jz name ->
-      Printf.sprintf "\tjz %s" (label_name macos name)
+  | Jmp name -> Printf.sprintf "\tjmp %s" (label_name macos name)
+  | Jz name -> Printf.sprintf "\tjz %s" (label_name macos name)
   | Ret -> "\tret"
   | Comment s -> Printf.sprintf "; %s" s
