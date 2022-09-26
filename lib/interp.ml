@@ -30,23 +30,18 @@ let rec interp_exp (exp : s_exp) : value =
       if interp_exp test_exp = Boolean false then interp_exp else_exp
       else interp_exp then_exp
   | Lst [ Sym "+"; e1; e2 ] -> (
-    match interp_exp e1, interp_exp e2 with 
-    | Number n1, Number n2 -> 
-      Number (n1 + n2)
-    | _ -> raise (BadExpression exp) )
+      match (interp_exp e1, interp_exp e2) with
+      | Number n1, Number n2 -> Number (n1 + n2)
+      | _ -> raise (BadExpression exp))
   | Lst [ Sym "-"; e1; e2 ] -> (
-    match interp_exp e1, interp_exp e2 with 
-    | Number n1, Number n2 -> 
-      Number (n1 - n2)
-    | _ -> raise (BadExpression exp) )
-  | Lst [ Sym "="; e1; e2 ] -> 
-    Boolean (interp_exp e1 = interp_exp e2) 
+      match (interp_exp e1, interp_exp e2) with
+      | Number n1, Number n2 -> Number (n1 - n2)
+      | _ -> raise (BadExpression exp))
+  | Lst [ Sym "="; e1; e2 ] -> Boolean (interp_exp e1 = interp_exp e2)
   | Lst [ Sym "<"; e1; e2 ] -> (
-    match interp_exp e1, interp_exp e2 with 
-    | Number n1, Number n2 -> 
-      Boolean (n1 < n2)
-    | _ -> raise (BadExpression exp) )
-  
+      match (interp_exp e1, interp_exp e2) with
+      | Number n1, Number n2 -> Boolean (n1 < n2)
+      | _ -> raise (BadExpression exp))
   | _ -> raise (BadExpression exp)
 
 let interp (program : string) : string =
