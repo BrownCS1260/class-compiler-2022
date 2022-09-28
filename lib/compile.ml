@@ -69,28 +69,28 @@ let rec compile_exp (tab : int symtab) (stack_index : int) (exp : s_exp) : direc
       @ [ Label continue_label ]
   | Lst [ Sym "+"; e1; e2 ] ->
       compile_exp tab stack_index e1
-      @ [ Mov (MemOffset (Reg Rsp, Imm stack_index), Reg Rax) ]
+      @ [ Mov (stack_address stack_index, Reg Rax) ]
       @ compile_exp tab (stack_index - 8) e2
-      @ [ Mov (Reg R8, MemOffset (Reg Rsp, Imm stack_index)) ]
+      @ [ Mov (Reg R8, stack_address stack_index) ]
       @ [ Add (Reg Rax, Reg R8) ]
   | Lst [ Sym "-"; e1; e2 ] ->
       compile_exp tab stack_index e1
-      @ [ Mov (MemOffset (Reg Rsp, Imm stack_index), Reg Rax) ]
+      @ [ Mov (stack_address stack_index, Reg Rax) ]
       @ compile_exp tab (stack_index - 8) e2
-      @ [ Mov (Reg R8, MemOffset (Reg Rsp, Imm stack_index)) ]
+      @ [ Mov (Reg R8, stack_address stack_index) ]
       @ [ Sub (Reg Rax, Reg R8) ]
   | Lst [ Sym "<"; e1; e2 ] ->
       compile_exp tab stack_index e1
-      @ [ Mov (MemOffset (Reg Rsp, Imm stack_index), Reg Rax) ]
+      @ [ Mov (stack_address stack_index, Reg Rax) ]
       @ compile_exp tab (stack_index - 8) e2
-      @ [ Mov (Reg R8, MemOffset (Reg Rsp, Imm stack_index)) ]
+      @ [ Mov (Reg R8, stack_address stack_index) ]
       @ [ Cmp (Reg R8, Reg Rax) ]
       @ lf_to_bool
   | Lst [ Sym "="; e1; e2 ] ->
       compile_exp tab stack_index e1
-      @ [ Mov (MemOffset (Reg Rsp, Imm stack_index), Reg Rax) ]
+      @ [ Mov (stack_address stack_index, Reg Rax) ]
       @ compile_exp tab (stack_index - 8) e2
-      @ [ Mov (Reg R8, MemOffset (Reg Rsp, Imm stack_index)) ]
+      @ [ Mov (Reg R8, stack_address stack_index) ]
       @ [ Cmp (Reg R8, Reg Rax) ]
       @ zf_to_bool
   | Lst [ Sym "let"; Lst [ Lst [ Sym var; e ]]; body ] -> 
