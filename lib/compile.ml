@@ -32,13 +32,13 @@ let lf_to_bool : directive list =
     Or (Reg Rax, Imm bool_tag);
   ]
 
-let stack_address stack_index =
-  MemOffset (Reg Rsp, Imm stack_index)
+let stack_address stack_index = MemOffset (Reg Rsp, Imm stack_index)
 
-let rec compile_exp (tab : int symtab) (stack_index : int) (exp : s_exp) : directive list =
+let rec compile_exp (tab : int symtab) (stack_index : int) (exp : s_exp) :
+    directive list =
   match exp with
-  | Sym var when Symtab.mem var tab -> 
-    [ Mov (Reg Rax, stack_address (Symtab.find var tab)) ]
+  | Sym var when Symtab.mem var tab ->
+      [ Mov (Reg Rax, stack_address (Symtab.find var tab)) ]
   | Num n -> [ Mov (Reg Rax, operand_of_num n) ]
   | Sym "true" -> [ Mov (Reg Rax, operand_of_bool true) ]
   | Sym "false" -> [ Mov (Reg Rax, operand_of_bool false) ]
@@ -93,14 +93,16 @@ let rec compile_exp (tab : int symtab) (stack_index : int) (exp : s_exp) : direc
       @ [ Mov (Reg R8, stack_address stack_index) ]
       @ [ Cmp (Reg R8, Reg Rax) ]
       @ zf_to_bool
-  | Lst [ Sym "let"; Lst [ Lst [ Sym var; e ]]; body ] -> 
-       compile_exp tab stack_index e
-       @ [ Mov (stack_address stack_index, Reg Rax) ]
-       @ compile_exp (Symtab.add var stack_index tab) (stack_index - 8) body
+  | Lst [ Sym "let"; Lst [ Lst [ Sym var; e ] ]; body ] ->
+      compile_exp tab stack_index e
+      @ [ Mov (stack_address stack_index, Reg Rax) ]
+      @ compile_exp (Symtab.add var stack_index tab) (stack_index - 8) body
   | _ -> raise (BadExpression exp)
 
 let compile (program : s_exp) : string =
-  [ Global "entry"; Label "entry" ] @ compile_exp Symtab.empty (-8) program @ [ Ret ]
+  [ Global "entry"; Label "entry" ]
+  @ compile_exp Symtab.empty (-8) program
+  @ [ Ret ]
   |> List.map string_of_directive
   |> String.concat "\n"
 

@@ -25,7 +25,9 @@ let rec interp_exp (env : value symtab) (exp : s_exp) : value =
   | Lst [ Sym "not"; arg ] ->
       if interp_exp env arg = Boolean false then Boolean true else Boolean false
   | Lst [ Sym "num?"; arg ] -> (
-      match interp_exp env arg with Number _ -> Boolean true | _ -> Boolean false)
+      match interp_exp env arg with
+      | Number _ -> Boolean true
+      | _ -> Boolean false)
   | Lst [ Sym "zero?"; arg ] ->
       if interp_exp env arg = Number 0 then Boolean true else Boolean false
   | Lst [ Sym "if"; test_exp; then_exp; else_exp ] ->
@@ -44,8 +46,8 @@ let rec interp_exp (env : value symtab) (exp : s_exp) : value =
       match (interp_exp env e1, interp_exp env e2) with
       | Number n1, Number n2 -> Boolean (n1 < n2)
       | _ -> raise (BadExpression exp))
-  | Lst [ Sym "let"; Lst [ Lst [ Sym var; e ]]; body ] -> 
-      let e_value = interp_exp env e in 
+  | Lst [ Sym "let"; Lst [ Lst [ Sym var; e ] ]; body ] ->
+      let e_value = interp_exp env e in
       interp_exp (Symtab.add var e_value env) body
   | _ -> raise (BadExpression exp)
 
