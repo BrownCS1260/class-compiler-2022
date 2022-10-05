@@ -1,10 +1,13 @@
 open S_exp
 open Util
 
-type value = Number of int | Boolean of bool
+type value = Number of int | Boolean of bool | Pair of (value * value)
 
-let string_of_val (v : value) : string =
-  match v with Number n -> string_of_int n | Boolean b -> string_of_bool b
+let rec string_of_val (v : value) : string =
+  match v with 
+  | Number n -> string_of_int n 
+  | Boolean b -> string_of_bool b 
+  | Pair (v1, v2) -> Printf.sprintf "(pair %s %s)" (string_of_val v1) (string_of_val v2)
 
 exception BadExpression of s_exp
 
@@ -49,6 +52,16 @@ let rec interp_exp (env : value symtab) (exp : s_exp) : value =
   | Lst [ Sym "let"; Lst [ Lst [ Sym var; e ] ]; body ] ->
       let e_value = interp_exp env e in
       interp_exp (Symtab.add var e_value env) body
+  | Lst [ Sym "pair"; e1; e2 ] -> 
+      Pair (interp_exp env e1, interp_exp env e2)
+  | Lst [ Sym "left"; e1 ] -> 
+      (match interp_exp env e1 with 
+       | Pair (v1, _) -> v1 
+       | _ -> raise (BadExpression exp))
+| Lst [ Sym "right"; e1 ] -> 
+    (match interp_exp env e1 with 
+    | Pair (_, v2) -> v2 
+    | _ -> raise (BadExpression exp))
   | _ -> raise (BadExpression exp)
 
 let interp (program : string) : string =
