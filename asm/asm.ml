@@ -11,7 +11,7 @@ let string_of_register ?(last_byte = false) (reg : register) : string =
   | Rsp, true -> "rsp"
   | Rsp, false -> "rsp"
   | Rdi, true -> "rdi"
-| Rdi, false -> "rdi"
+  | Rdi, false -> "rdi"
 
 type operand = Reg of register | Imm of int | MemOffset of (operand * operand)
 
