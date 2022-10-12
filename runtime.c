@@ -43,6 +43,11 @@ void print_value(uint64_t value) {
   }
 }
 
+void error() {
+  printf("ERROR");
+  exit(1);
+}
+
 int main(int argc, char **argv) {
   print_value(entry((void*)malloc(4096)));
   return 0;

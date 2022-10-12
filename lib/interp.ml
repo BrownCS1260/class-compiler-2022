@@ -45,7 +45,11 @@ let rec interp_exp (env : value symtab) (exp : s_exp) : value =
       match (interp_exp env e1, interp_exp env e2) with
       | Number n1, Number n2 -> Number (n1 - n2)
       | _ -> raise (BadExpression exp))
-  | Lst [ Sym "="; e1; e2 ] -> Boolean (interp_exp env e1 = interp_exp env e2)
+  | Lst [ Sym "="; e1; e2 ] -> (
+    match (interp_exp env e1, interp_exp env e2) with
+    | Number n1, Number n2 -> Boolean (n1 = n2)
+    | Boolean b1, Boolean b2 -> Boolean (b1 = b2)
+    | _ -> raise (BadExpression exp))
   | Lst [ Sym "<"; e1; e2 ] -> (
       match (interp_exp env e1, interp_exp env e2) with
       | Number n1, Number n2 -> Boolean (n1 < n2)
