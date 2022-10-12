@@ -70,3 +70,6 @@ let rec interp_exp (env : value symtab) (exp : s_exp) : value =
 
 let interp (program : string) : string =
   parse program |> interp_exp Symtab.empty |> string_of_val
+
+let interp_err (program : string) : string =
+    try interp program with BadExpression _ -> "ERROR"

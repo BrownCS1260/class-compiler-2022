@@ -167,3 +167,11 @@ let compile_and_run (program : string) : string =
   let r = input_line inp in
   close_in inp;
   r
+
+let compile_and_run_err (program : string) : string =
+  try compile_and_run program with BadExpression _ -> "ERROR"
+
+let difftest (examples : string list) =
+  let results = 
+    List.map (fun ex -> (compile_and_run_err ex, Interp.interp_err ex)) examples 
+  in List.for_all (fun (r1, r2) -> r1 = r2) results
