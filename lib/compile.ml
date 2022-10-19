@@ -2,8 +2,6 @@ open S_exp
 open Asm
 open Util
 
-exception BadExpression of s_exp
-
 let num_shift = 2
 let num_mask = 0b11
 let num_tag = 0b00
