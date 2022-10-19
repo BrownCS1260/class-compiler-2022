@@ -34,24 +34,28 @@ let lf_to_bool : directive list =
     Or (Reg Rax, Imm bool_tag);
   ]
 
-  (* modifies R8 *)
+(* modifies R8 *)
 let ensure_num (op : operand) : directive list =
-  [ Mov (Reg R8, op)
-  ; And (Reg R8, Imm num_mask)
-  ; Cmp (Reg R8, Imm num_tag)
-  ; Jnz "error" ]
+  [
+    Mov (Reg R8, op);
+    And (Reg R8, Imm num_mask);
+    Cmp (Reg R8, Imm num_tag);
+    Jnz "error";
+  ]
 
-  (* modifies R8 *)
-  let ensure_pair (op : operand) : directive list =
-    [ Mov (Reg R8, op)
-    ; And (Reg R8, Imm heap_mask)
-    ; Cmp (Reg R8, Imm pair_tag)
-    ; Jnz "error" ]
+(* modifies R8 *)
+let ensure_pair (op : operand) : directive list =
+  [
+    Mov (Reg R8, op);
+    And (Reg R8, Imm heap_mask);
+    Cmp (Reg R8, Imm pair_tag);
+    Jnz "error";
+  ]
 
 let stack_address stack_index = MemOffset (Reg Rsp, Imm stack_index)
 
 let align_stack_index (stack_index : int) : int =
-  if stack_index mod 16 = -8 then stack_index else stack_index - 8 
+  if stack_index mod 16 = -8 then stack_index else stack_index - 8
 
 let rec compile_exp (tab : int symtab) (stack_index : int) (exp : s_exp) :
     directive list =
@@ -74,11 +78,11 @@ let rec compile_exp (tab : int symtab) (stack_index : int) (exp : s_exp) :
       @ [ And (Reg Rax, Imm num_mask); Cmp (Reg Rax, Imm num_tag) ]
       @ zf_to_bool
   | Lst [ Sym "add1"; arg ] ->
-      compile_exp tab stack_index arg 
+      compile_exp tab stack_index arg
       @ ensure_num (Reg Rax)
       @ [ Add (Reg Rax, operand_of_num 1) ]
   | Lst [ Sym "sub1"; arg ] ->
-      compile_exp tab stack_index arg 
+      compile_exp tab stack_index arg
       @ ensure_num (Reg Rax)
       @ [ Sub (Reg Rax, operand_of_num 1) ]
   | Lst [ Sym "if"; test_exp; then_exp; else_exp ] ->
@@ -148,12 +152,14 @@ let rec compile_exp (tab : int symtab) (stack_index : int) (exp : s_exp) :
       compile_exp tab stack_index e
       @ ensure_pair (Reg Rax)
       @ [ Mov (Reg Rax, MemOffset (Reg Rax, Imm (-pair_tag + 8))) ]
-  | Lst [ Sym "read-num" ] -> 
-    [ Mov (stack_address stack_index, Reg Rdi) 
-    ; Add (Reg Rsp, Imm (align_stack_index stack_index))
-    ; Call "read_num"
-    ; Sub (Reg Rsp, Imm (align_stack_index stack_index))
-    ; Mov (Reg Rdi, stack_address stack_index) ]
+  | Lst [ Sym "read-num" ] ->
+      [
+        Mov (stack_address stack_index, Reg Rdi);
+        Add (Reg Rsp, Imm (align_stack_index stack_index));
+        Call "read_num";
+        Sub (Reg Rsp, Imm (align_stack_index stack_index));
+        Mov (Reg Rdi, stack_address stack_index);
+      ]
   | _ -> raise (BadExpression exp)
 
 let compile (program : s_exp) : string =
@@ -181,6 +187,7 @@ let compile_and_run_err (program : string) : string =
   try compile_and_run program with BadExpression _ -> "ERROR"
 
 let difftest (examples : string list) =
-  let results = 
-    List.map (fun ex -> (compile_and_run_err ex, Interp.interp_err ex)) examples 
-  in List.for_all (fun (r1, r2) -> r1 = r2) results
+  let results =
+    List.map (fun ex -> (compile_and_run_err ex, Interp.interp_err ex)) examples
+  in
+  List.for_all (fun (r1, r2) -> r1 = r2) results

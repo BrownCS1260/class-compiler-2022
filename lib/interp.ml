@@ -40,37 +40,37 @@ let rec interp_exp (env : value symtab) (exp : s_exp) : value =
       if interp_exp env test_exp = Boolean false then interp_exp env else_exp
       else interp_exp env then_exp
   | Lst [ Sym "+"; e1; e2 ] -> (
-      let l = interp_exp env e1 in 
+      let l = interp_exp env e1 in
       let r = interp_exp env e2 in
       match (l, r) with
       | Number n1, Number n2 -> Number (n1 + n2)
       | _ -> raise (BadExpression exp))
   | Lst [ Sym "-"; e1; e2 ] -> (
-    let l = interp_exp env e1 in 
-    let r = interp_exp env e2 in
-    match (l, r) with
+      let l = interp_exp env e1 in
+      let r = interp_exp env e2 in
+      match (l, r) with
       | Number n1, Number n2 -> Number (n1 - n2)
       | _ -> raise (BadExpression exp))
   | Lst [ Sym "="; e1; e2 ] -> (
-    let l = interp_exp env e1 in 
-    let r = interp_exp env e2 in
-    match (l, r) with
-    | Number n1, Number n2 -> Boolean (n1 = n2)
-    | Boolean b1, Boolean b2 -> Boolean (b1 = b2)
-    | _ -> raise (BadExpression exp))
+      let l = interp_exp env e1 in
+      let r = interp_exp env e2 in
+      match (l, r) with
+      | Number n1, Number n2 -> Boolean (n1 = n2)
+      | Boolean b1, Boolean b2 -> Boolean (b1 = b2)
+      | _ -> raise (BadExpression exp))
   | Lst [ Sym "<"; e1; e2 ] -> (
-    let l = interp_exp env e1 in 
-    let r = interp_exp env e2 in
-    match (l, r) with
+      let l = interp_exp env e1 in
+      let r = interp_exp env e2 in
+      match (l, r) with
       | Number n1, Number n2 -> Boolean (n1 < n2)
       | _ -> raise (BadExpression exp))
   | Lst [ Sym "let"; Lst [ Lst [ Sym var; e ] ]; body ] ->
       let e_value = interp_exp env e in
       interp_exp (Symtab.add var e_value env) body
-  | Lst [ Sym "pair"; e1; e2 ] -> 
-    let left = interp_exp env e1 in 
-    let right = interp_exp env e2 in
-    Pair (left, right)
+  | Lst [ Sym "pair"; e1; e2 ] ->
+      let left = interp_exp env e1 in
+      let right = interp_exp env e2 in
+      Pair (left, right)
   | Lst [ Sym "left"; e1 ] -> (
       match interp_exp env e1 with
       | Pair (v1, _) -> v1
@@ -79,12 +79,11 @@ let rec interp_exp (env : value symtab) (exp : s_exp) : value =
       match interp_exp env e1 with
       | Pair (_, v2) -> v2
       | _ -> raise (BadExpression exp))
-  | Lst [ Sym "read-num" ] -> 
-      Number (input_line !input_channel |> int_of_string)
+  | Lst [ Sym "read-num" ] -> Number (input_line !input_channel |> int_of_string)
   | _ -> raise (BadExpression exp)
 
 let interp (program : string) : string =
   parse program |> interp_exp Symtab.empty |> string_of_val
 
 let interp_err (program : string) : string =
-    try interp program with BadExpression _ -> "ERROR"
+  try interp program with BadExpression _ -> "ERROR"
