@@ -54,7 +54,11 @@ void error() {
   exit(1);
 }
 
+void print_newline() {
+  printf("\n");
+}
+
 int main(int argc, char **argv) {
-  print_value(entry((void*)malloc(4096)));
+  entry((void*)malloc(4096));
   return 0;
 }
