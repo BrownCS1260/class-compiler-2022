@@ -193,14 +193,11 @@ let compile_to_file (program : string) : unit =
   output_string file (compile (parse program));
   close_out file
 
-let compile_and_run (program : string) : string =
+let compile_and_run (program : string) : unit =
   compile_to_file program;
   ignore (Unix.system "nasm program.s -f elf64 -o program.o");
   ignore (Unix.system "gcc program.o runtime.o -o program");
-  let inp = Unix.open_process_in "./program" in
-  let r = input_line inp in
-  close_in inp;
-  r
+  ignore (Unix.open_process_in "./program")
 
   let compile_and_run_io (program : string) (input : string) : string =
     compile_to_file program ;

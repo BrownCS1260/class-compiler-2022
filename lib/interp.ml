@@ -17,7 +17,7 @@ exception BadExpression of s_exp
 
 let rec interp_exp (defns : defn list) (env : value symtab) (exp : s_exp) : value =
   match exp with
-  | Lst (Sym f :: args) when is_defn defns -> raise (BadExpression exp) (*not implemented yet*)
+  | Lst (Sym f :: args) when is_defn defns f -> raise (BadExpression exp) (*not implemented yet*)
   | Sym var when Symtab.mem var env -> Symtab.find var env
   | Num n -> Number n
   | Sym "true" -> Boolean true
@@ -92,7 +92,7 @@ let rec interp_exp (defns : defn list) (env : value symtab) (exp : s_exp) : valu
   | _ -> raise (BadExpression exp)
 
   let interp (program : string) : unit =
-    let defns, body = parse_many program |> get_defns_and_body in
+    let defns, body = parse_many program |> defns_and_body in
     interp_exp defns Symtab.empty body |> ignore
   
   let interp_io (program : string) (input : string) =
