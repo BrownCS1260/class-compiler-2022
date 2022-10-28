@@ -21,8 +21,7 @@ let rec interp_exp (defns : defn list) (env : value symtab) (exp : s_exp) : valu
     let defn = get_defn defns f in 
     if List.length args <> List.length defn.args then raise (BadExpression exp) else 
         let vals = List.map (interp_exp defns env) args in 
-        let fenv = List.fold_left (fun t (name, v) -> Symtab.add name v t) 
-          Symtab.empty (List.combine defn.args vals) in 
+        let fenv = Symtab.of_list (List.combine defn.args vals) in 
         interp_exp defns fenv defn.body
   | Sym var when Symtab.mem var env -> Symtab.find var env
   | Num n -> Number n

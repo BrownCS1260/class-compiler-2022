@@ -119,8 +119,9 @@ let rec compile_exp (defns : defn list) (tab : int symtab) (stack_index : int) (
       @ [ Mov (stack_address stack_index, Reg Rax) ]
       @ compile_exp defns tab (stack_index - 8) e2
       @ ensure_num (Reg Rax)
-      @ [ Mov (Reg R8, stack_address stack_index) ]
-      @ [ Sub (Reg Rax, Reg R8) ]
+      @ [ Mov (Reg R8, Reg Rax) 
+        ; Mov (Reg Rax, stack_address stack_index)
+        ; Sub (Reg Rax, Reg R8) ]
   | Lst [ Sym "<"; e1; e2 ] ->
       compile_exp defns tab stack_index e1
       @ ensure_num (Reg Rax)
@@ -194,8 +195,7 @@ let rec compile_exp (defns : defn list) (tab : int symtab) (stack_index : int) (
   | _ -> raise (BadExpression exp)
 
 let compile_defn (defns : defn list) {name; args; body} : directive list =
-  let ftab = args |> List.mapi (fun i arg -> (arg, -8 * (i + 1))) |> 
-    List.fold_left (fun t (name, v) -> Symtab.add name v t) Symtab.empty in
+  let ftab = args |> List.mapi (fun i arg -> (arg, -8 * (i + 1))) |> Symtab.of_list in  
   [Label (defn_label name)]
   @ compile_exp defns ftab (-8*(List.length args + 1)) body 
   @ [Ret]
