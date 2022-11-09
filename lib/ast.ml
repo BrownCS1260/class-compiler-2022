@@ -1,4 +1,6 @@
-open S_exp
+open S_exp 
+
+exception BadSExpression of s_exp
 
 type prim0 = ReadNum | Newline
 

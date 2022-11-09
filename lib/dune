@@ -1,4 +1,4 @@
 (library
  (name csci1260)
- (modules compile interp util handparser)
+ (modules compile interp util handparser ast)
  (libraries s_exp asm))
