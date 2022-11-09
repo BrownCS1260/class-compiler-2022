@@ -29,27 +29,6 @@ let rec input_all (ch : in_channel) : string =
 
 exception BadExpression of s_exp
 
-type defn = { name : string; args : string list; body : s_exp }
-
-let sym = function Sym s -> s | e -> raise (BadExpression e)
-
-let defns_and_body (exps : s_exp list) : defn list * s_exp =
-  let get_defn = function
-    | Lst [ Sym "define"; Lst (Sym name :: args); body ] ->
-        { name; args = List.map sym args; body }
-    | e -> raise (BadExpression e)
-  in
-  let rec go exps defns =
-    match exps with
-    | [ e ] -> (List.rev defns, e)
-    | d :: exps -> go exps (get_defn d :: defns)
-    | _ -> raise (BadExpression (Sym "empty"))
-  in
-  go exps []
-
-let is_defn defns name = List.exists (fun d -> d.name = name) defns
-let get_defn defns name = List.find (fun d -> d.name = name) defns
-
 let defn_label s =
   let nasm_char c =
     match c with
