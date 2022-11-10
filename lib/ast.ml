@@ -41,7 +41,8 @@ type expr =
   | Do of expr list
   | Num of int
   | Var of string
-  | Call of string * expr list
+  | Call of expr * expr list
+  (* | Function of string list * expr *)
   | True
   | False
 
@@ -71,7 +72,7 @@ let rec expr_of_s_exp : s_exp -> expr = function
         ( Option.get (prim2_of_string prim),
           expr_of_s_exp arg1,
           expr_of_s_exp arg2 )
-  | Lst (Sym f :: args) -> Call (f, List.map expr_of_s_exp args)
+  | Lst (Sym f :: args) -> Call (Var f, List.map expr_of_s_exp args)
   | e -> raise (BadSExpression e)
 
 let program_of_s_exps (exps : s_exp list) : program =
