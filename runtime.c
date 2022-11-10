@@ -14,6 +14,8 @@
 
 #define heap_mask 0b111
 #define pair_tag 0b010
+#define fn_tag 0b110
+
 
 //  true:  represented as 0b10011111
 //  false: represented as 0b00011111
@@ -44,6 +46,8 @@ void print_value(uint64_t value) {
     printf(" ");
     print_value(v2);
     printf(")");
+  } else if ((value & heap_mask) == fn_tag) {
+    printf("<function>");
   } else {
     printf("BAD VALUE %" PRIi64, value);
   }
