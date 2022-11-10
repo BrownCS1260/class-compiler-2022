@@ -280,13 +280,13 @@ let compile_to_file (program : string) : unit =
 let compile_and_run (program : string) : unit =
   compile_to_file program;
   ignore (Unix.system "nasm program.s -f elf64 -o program.o");
-  ignore (Unix.system "gcc program.o runtime.o -o program");
+  ignore (Unix.system "gcc -no-pie program.o runtime.o -o program");
   ignore (Unix.system "./program")
 
 let compile_and_run_io (program : string) (input : string) : string =
   compile_to_file program;
   ignore (Unix.system "nasm program.s -f elf64 -o program.o");
-  ignore (Unix.system "gcc program.o runtime.o -o program");
+  ignore (Unix.system "gcc -no-pie program.o runtime.o -o program");
   let inp, outp = Unix.open_process "./program" in
   output_string outp input;
   close_out outp;
