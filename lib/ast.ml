@@ -99,24 +99,17 @@ let program_of_s_exps (exps : s_exp list) : program =
 
 exception BadExpression of expr
 
-
 let rec fv (defns : defn list) (bound : string list) = function
-| Var s when not (List.mem s bound) ->
-    [s]
-| Let (v, e, body) ->
-    fv defns bound e @ fv defns (v :: bound) body
-| If (te, the, ee) ->
-    fv defns bound te @ fv defns bound the @ fv defns bound ee
-| Do es ->
-    List.concat_map (fv defns bound) es
-| Call (exp, args) ->
-    fv defns bound exp @ List.concat_map (fv defns bound) args
-| Prim1 (_, e) ->
-    fv defns bound e
-| Prim2 (_, e1, e2) ->
-    fv defns bound e1 @ fv defns bound e2
-| Closure f ->
-  let defn = get_defn defns f in
-  fv defns (bound @ List.map (fun d -> d.name) defns @ defn.args) defn.body
-| _ ->
-    []
+  | Var s when not (List.mem s bound) -> [ s ]
+  | Let (v, e, body) -> fv defns bound e @ fv defns (v :: bound) body
+  | If (te, the, ee) ->
+      fv defns bound te @ fv defns bound the @ fv defns bound ee
+  | Do es -> List.concat_map (fv defns bound) es
+  | Call (exp, args) ->
+      fv defns bound exp @ List.concat_map (fv defns bound) args
+  | Prim1 (_, e) -> fv defns bound e
+  | Prim2 (_, e1, e2) -> fv defns bound e1 @ fv defns bound e2
+  | Closure f ->
+      let defn = get_defn defns f in
+      fv defns (bound @ List.map (fun d -> d.name) defns @ defn.args) defn.body
+  | _ -> []

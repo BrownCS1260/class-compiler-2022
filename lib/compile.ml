@@ -73,75 +73,92 @@ let rec compile_exp (defns : defn list) (tab : int symtab) (stack_index : int)
       let compiled_args =
         args
         |> List.mapi (fun i arg ->
-                compile_exp defns tab (stack_index - (8 * i)) arg false
-                @ [ Mov (stack_address (stack_index - (8 * i)), Reg Rax) ])
+               compile_exp defns tab (stack_index - (8 * i)) arg false
+               @ [ Mov (stack_address (stack_index - (8 * i)), Reg Rax) ])
         |> List.concat
       in
       let moved_args =
         args
         |> List.mapi (fun i _ ->
-                [
-                  Mov (Reg R8, stack_address (stack_index - (8 * i)));
-                  Mov (stack_address ((i + 1) * -8), Reg R8);
-                ])
+               [
+                 Mov (Reg R8, stack_address (stack_index - (8 * i)));
+                 Mov (stack_address ((i + 1) * -8), Reg R8);
+               ])
         |> List.concat
       in
-      compiled_args 
-      @ compile_exp defns tab (stack_index - 8*(List.length args + 2)) f false
-      @ ensure_fn (Reg Rax)
-      @ moved_args
-      @ [ Mov (stack_address ((List.length args + 1) * -8), Reg Rax)
-        ; Sub (Reg Rax, Imm fn_tag)
-        ; Mov (Reg Rax, MemOffset (Reg Rax, Imm 0)) ]
-       @ [ ComputedJmp (Reg Rax) ]
+      compiled_args
+      @ compile_exp defns tab
+          (stack_index - (8 * (List.length args + 2)))
+          f false
+      @ ensure_fn (Reg Rax) @ moved_args
+      @ [
+          Mov (stack_address ((List.length args + 1) * -8), Reg Rax);
+          Sub (Reg Rax, Imm fn_tag);
+          Mov (Reg Rax, MemOffset (Reg Rax, Imm 0));
+        ]
+      @ [ ComputedJmp (Reg Rax) ]
   | Call (f, args) ->
-    let stack_base = align_stack_index (stack_index + 8) in
-    let compiled_args =
-      args
-      |> List.mapi (fun i arg ->
-              compile_exp defns tab (stack_base - (8 * (i + 2))) arg false
-              @ [ Mov (stack_address (stack_base - (8 * (i + 2))), Reg Rax) ])
-      |> List.concat
-    in
-    compiled_args
-    @ compile_exp defns tab (stack_base - 8*(List.length args + 2)) f false
-    @ ensure_fn (Reg Rax)     
-    @ [ Mov
-        (stack_address (stack_base - (8 * (List.length args + 2))), Reg Rax)
-    ; Sub (Reg Rax, Imm fn_tag)
-    ; Mov (Reg Rax, MemOffset (Reg Rax, Imm 0)) ]
-    @ [
-        Add (Reg Rsp, Imm stack_base);
-        ComputedCall (Reg Rax);
-        Sub (Reg Rsp, Imm stack_base);
-      ]
+      let stack_base = align_stack_index (stack_index + 8) in
+      let compiled_args =
+        args
+        |> List.mapi (fun i arg ->
+               compile_exp defns tab (stack_base - (8 * (i + 2))) arg false
+               @ [ Mov (stack_address (stack_base - (8 * (i + 2))), Reg Rax) ])
+        |> List.concat
+      in
+      compiled_args
+      @ compile_exp defns tab
+          (stack_base - (8 * (List.length args + 2)))
+          f false
+      @ ensure_fn (Reg Rax)
+      @ [
+          Mov
+            (stack_address (stack_base - (8 * (List.length args + 2))), Reg Rax);
+          Sub (Reg Rax, Imm fn_tag);
+          Mov (Reg Rax, MemOffset (Reg Rax, Imm 0));
+        ]
+      @ [
+          Add (Reg Rsp, Imm stack_base);
+          ComputedCall (Reg Rax);
+          Sub (Reg Rsp, Imm stack_base);
+        ]
   | Var var when Symtab.mem var tab ->
       [ Mov (Reg Rax, stack_address (Symtab.find var tab)) ]
-  | Var var when is_defn defns var -> 
-    [ LeaLabel (Reg Rax, defn_label var)
-    ; Mov (MemOffset (Reg Rdi, Imm 0), Reg Rax)
-    ; Mov (Reg Rax, Reg Rdi)
-    ; Or (Reg Rax, Imm fn_tag)
-    ; Add (Reg Rdi, Imm 8) ]
+  | Var var when is_defn defns var ->
+      [
+        LeaLabel (Reg Rax, defn_label var);
+        Mov (MemOffset (Reg Rdi, Imm 0), Reg Rax);
+        Mov (Reg Rax, Reg Rdi);
+        Or (Reg Rax, Imm fn_tag);
+        Add (Reg Rdi, Imm 8);
+      ]
   | Closure f ->
-    let defn = get_defn defns f in
-    let fvs = fv defns (List.map (fun d -> d.name) defns @ defn.args) defn.body in
-    let fv_movs =
-      List.mapi
-        (fun i var ->
-          [ Mov (Reg Rax, stack_address (Symtab.find var tab))
-          ; Mov (MemOffset (Reg Rdi, Imm (8 * (i + 1))), Reg Rax) ])
-        fvs
-    in
-    if List.exists (fun v -> not (Symtab.mem v tab)) fvs then
-      raise (BadExpression exp)
-    else
-      [ LeaLabel (Reg Rax, defn_label f)
-      ; Mov (MemOffset (Reg Rdi, Imm 0), Reg Rax) ]
-      @ List.concat fv_movs
-      @ [ Mov (Reg Rax, Reg Rdi)
-        ; Or (Reg Rax, Imm fn_tag)
-        ; Add (Reg Rdi, Imm (8 * (List.length fvs + 1))) ]
+      let defn = get_defn defns f in
+      let fvs =
+        fv defns (List.map (fun d -> d.name) defns @ defn.args) defn.body
+      in
+      let fv_movs =
+        List.mapi
+          (fun i var ->
+            [
+              Mov (Reg Rax, stack_address (Symtab.find var tab));
+              Mov (MemOffset (Reg Rdi, Imm (8 * (i + 1))), Reg Rax);
+            ])
+          fvs
+      in
+      if List.exists (fun v -> not (Symtab.mem v tab)) fvs then
+        raise (BadExpression exp)
+      else
+        [
+          LeaLabel (Reg Rax, defn_label f);
+          Mov (MemOffset (Reg Rdi, Imm 0), Reg Rax);
+        ]
+        @ List.concat fv_movs
+        @ [
+            Mov (Reg Rax, Reg Rdi);
+            Or (Reg Rax, Imm fn_tag);
+            Add (Reg Rdi, Imm (8 * (List.length fvs + 1)));
+          ]
   | Var _ -> raise (BadExpression exp)
   | Num n -> [ Mov (Reg Rax, operand_of_num n) ]
   | True -> [ Mov (Reg Rax, operand_of_bool true) ]
@@ -282,14 +299,17 @@ let compile_defn (defns : defn list) (defn : defn) : directive list =
     |> Symtab.of_list
   in
   let fvs_to_stack =
-    [ Mov (Reg Rax, stack_address (-8 * (List.length defn.args + 1)))
-    ; Sub (Reg Rax, Imm fn_tag)
-    ; Add (Reg Rax, Imm 8) ]
+    [
+      Mov (Reg Rax, stack_address (-8 * (List.length defn.args + 1)));
+      Sub (Reg Rax, Imm fn_tag);
+      Add (Reg Rax, Imm 8);
+    ]
     @ List.concat
         (List.mapi
            (fun i _ ->
-             [ Mov (Reg R8, MemOffset (Reg Rax, Imm (i * 8)))
-             ; Mov (stack_address (-8 * (List.length defn.args + 1 + i)), Reg R8)
+             [
+               Mov (Reg R8, MemOffset (Reg Rax, Imm (i * 8)));
+               Mov (stack_address (-8 * (List.length defn.args + 1 + i)), Reg R8);
              ])
            fvs)
   in
@@ -348,4 +368,3 @@ let difftest (examples : (string * string) list) =
   List.for_all (fun (r1, r2) -> r1 = r2) results
 
 let test () = difftest [ ("(print (read-num))", "1") ]
-

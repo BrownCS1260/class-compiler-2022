@@ -2,7 +2,10 @@ open S_exp
 open Ast_lam
 open Util
 
-type value = Number of int | Boolean of bool | Pair of (value * value) 
+type value =
+  | Number of int
+  | Boolean of bool
+  | Pair of (value * value)
   | Function of (string * value symtab)
 
 let input_channel = ref stdin
@@ -18,20 +21,22 @@ let rec string_of_val (v : value) : string =
 
 exception BadExpression of expr
 
-let rec interp_exp (defns : defn list) (env : value symtab) (exp : expr) :
-    value =
+let rec interp_exp (defns : defn list) (env : value symtab) (exp : expr) : value
+    =
   match exp with
-  | Call (f, args) ->(
+  | Call (f, args) -> (
       let vals = List.map (interp_exp defns env) args in
-      let fv = interp_exp defns env f in 
-      match fv with 
-      | Function (name, saved_env) when is_defn defns name -> 
-       ( let defn = get_defn defns name in
-        if List.length args <> List.length defn.args then
+      let fv = interp_exp defns env f in
+      match fv with
+      | Function (name, saved_env) when is_defn defns name ->
+          let defn = get_defn defns name in
+          if List.length args <> List.length defn.args then
             raise (BadExpression exp)
-        else
-            let fenv = List.combine defn.args vals |> Symtab.add_list saved_env in
-            interp_exp defns fenv defn.body)
+          else
+            let fenv =
+              List.combine defn.args vals |> Symtab.add_list saved_env
+            in
+            interp_exp defns fenv defn.body
       | _ -> raise (BadExpression exp))
   | Var var when Symtab.mem var env -> Symtab.find var env
   | Var var when is_defn defns var -> Function (var, Symtab.empty)
@@ -109,8 +114,7 @@ let rec interp_exp (defns : defn list) (env : value symtab) (exp : expr) :
   | Prim0 Newline ->
       output_string !output_channel "\n";
       Boolean true
-  | Do exps ->
-      exps |> List.rev_map (interp_exp defns env) |> List.hd
+  | Do exps -> exps |> List.rev_map (interp_exp defns env) |> List.hd
 
 let interp (program : string) : unit =
   let prog = parse_many program |> program_of_s_exps in
