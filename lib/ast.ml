@@ -41,6 +41,7 @@ type expr =
   | Do of expr list
   | Num of int
   | Var of string
+  | Closure of string
   | Call of expr * expr list
   | True
   | False
