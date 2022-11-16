@@ -61,27 +61,6 @@ let ensure_fn (op : operand) : directive list =
     Jnz "error";
   ]
 
-  let rec fv (defns : defn list) (bound : string list) = function
-  | Var s when not (List.mem s bound) ->
-      [s]
-  | Let (v, e, body) ->
-      fv defns bound e @ fv defns (v :: bound) body
-  | If (te, the, ee) ->
-      fv defns bound te @ fv defns bound the @ fv defns bound ee
-  | Do es ->
-      List.concat_map (fv defns bound) es
-  | Call (exp, args) ->
-      fv defns bound exp @ List.concat_map (fv defns bound) args
-  | Prim1 (_, e) ->
-      fv defns bound e
-  | Prim2 (_, e1, e2) ->
-      fv defns bound e1 @ fv defns bound e2
-  | Closure f ->
-    let defn = get_defn defns f in
-    fv defns (bound @ List.map (fun d -> d.name) defns @ defn.args) defn.body
-  | _ ->
-      []
-
 let stack_address stack_index = MemOffset (Reg Rsp, Imm stack_index)
 
 let align_stack_index (stack_index : int) : int =
@@ -110,10 +89,11 @@ let rec compile_exp (defns : defn list) (tab : int symtab) (stack_index : int)
       compiled_args 
       @ compile_exp defns tab (stack_index - 8*(List.length args + 2)) f false
       @ ensure_fn (Reg Rax)
+      @ moved_args
       @ [ Mov (stack_address ((List.length args + 1) * -8), Reg Rax)
         ; Sub (Reg Rax, Imm fn_tag)
         ; Mov (Reg Rax, MemOffset (Reg Rax, Imm 0)) ]
-      @ moved_args @ [ ComputedJmp (Reg Rax) ]
+       @ [ ComputedJmp (Reg Rax) ]
   | Call (f, args) ->
     let stack_base = align_stack_index (stack_index + 8) in
     let compiled_args =
@@ -145,7 +125,7 @@ let rec compile_exp (defns : defn list) (tab : int symtab) (stack_index : int)
     ; Add (Reg Rdi, Imm 8) ]
   | Closure f ->
     let defn = get_defn defns f in
-    let fvs = fv (List.map (fun d -> d.name) defns @ defn.args) defn.body in
+    let fvs = fv defns (List.map (fun d -> d.name) defns @ defn.args) defn.body in
     let fv_movs =
       List.mapi
         (fun i var ->
@@ -295,7 +275,7 @@ let rec compile_exp (defns : defn list) (tab : int symtab) (stack_index : int)
       |> List.concat
 
 let compile_defn (defns : defn list) (defn : defn) : directive list =
-  let fvs = fv (List.map (fun d -> d.name) defns @ defn.args) defn.body in
+  let fvs = fv defns (List.map (fun d -> d.name) defns @ defn.args) defn.body in
   let ftab =
     defn.args @ fvs
     |> List.mapi (fun i arg -> (arg, -8 * (i + 1)))
