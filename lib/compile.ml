@@ -2,6 +2,7 @@ open S_exp
 open Asm
 open Util
 open Ast_lam
+open Constant_folding
 
 let num_shift = 2
 let num_mask = 0b11
@@ -319,7 +320,7 @@ let compile_defn (defns : defn list) (defn : defn) : directive list =
   @ [ Ret ]
 
 let compile (program : s_exp list) : string =
-  let prog = program_of_s_exps program in
+  let prog = program_of_s_exps program |> fold_program in
   [
     Global "entry";
     Extern "error";
