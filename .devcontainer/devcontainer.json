@@ -1,0 +1,29 @@
+{
+  "name": "CS1260 Dev Container",
+  "image": "jiahuac/cs1260:main",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "version": "latest"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "git.autofetch": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll": true,
+          "source.organizeImports": true,
+          "source.sortMembers": true
+        },
+        "editor.formatOnSave": true,
+        "extensions.ignoreRecommendations": true
+      },
+      "extensions": [
+        "ocamllabs.ocaml-platform",
+        "eamodio.gitlens",
+        "gruntfuggly.todo-tree",
+        "yzhang.markdown-all-in-one"
+      ]
+    }
+  }
+}
