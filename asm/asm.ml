@@ -36,6 +36,7 @@ type directive =
   | Setl of operand
   | Jmp of string
   | Jz of string
+  | Je of string
   | Ret
   | Comment of string
 
@@ -83,5 +84,6 @@ let string_of_directive = function
       Printf.sprintf "\tsetl %s" (string_of_operand ~last_byte:true dest)
   | Jmp name -> Printf.sprintf "\tjmp %s" (label_name macos name)
   | Jz name -> Printf.sprintf "\tjz %s" (label_name macos name)
+  | Je name -> Printf.sprintf "\tje %s" (label_name macos name)
   | Ret -> "\tret"
   | Comment s -> Printf.sprintf "; %s" s

@@ -14,10 +14,8 @@ type expr =
   | Prim2 of prim2 * expr * expr
   | If of expr * expr * expr
   | Num of int
-  | Var of string
   | True
   | False
-  | Nil
 
 type defn = {name: string; args: string list; body: expr}
 
@@ -52,10 +50,6 @@ let rec s_exp_of_expr = function
       Sym "true"
   | False ->
       Sym "false"
-  | Nil ->
-      Lst []
-  | Var x ->
-      Sym x
   | Num n ->
       Num n
 

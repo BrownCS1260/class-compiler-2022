@@ -10,7 +10,7 @@
 %%
 
 main:
-| e = expr 
+| e = expr
         { e }
 
 expr:

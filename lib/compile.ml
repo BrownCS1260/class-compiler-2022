@@ -1,9 +1,9 @@
 (* open S_exp *)
 open Asm
 open Ast
-(* open Util *)
+open Util
 
-exception BadExpression of s_exp
+(* exception BadExpression of s_exp *)
 
 let num_shift = 2
 let num_mask = 0b11
@@ -35,7 +35,7 @@ let lf_to_bool : directive list =
 
 let stack_address (index : int) : operand = MemOffset (Imm index, Reg Rsp)
 
-let compile_unary_primitive e = function
+let compile_unary_primitive = function
 | Add1 ->
   [Add (Reg Rax, operand_of_num 1)]
 | Sub1 ->
@@ -47,7 +47,7 @@ let compile_unary_primitive e = function
 | Not ->
   [Cmp (Reg Rax, operand_of_bool false)] @ zf_to_bool
 
-let compile_binary_primitive stack_index e = function
+let compile_binary_primitive stack_index = function
   | Plus ->
       [Add (Reg Rax, stack_address stack_index)]
   | Minus ->
@@ -68,8 +68,6 @@ let rec compile_expr (stack_index : int) : expr -> directive list = function
     [Mov (Reg Rax, operand_of_bool true)]
 | False ->
     [Mov (Reg Rax, operand_of_bool false)]
-| Nil ->
-    [Mov (Reg Rax, operand_of_nil)]
 | If (test_expr, then_expr, else_expr) ->
     let then_label = gensym "then" in
     let else_label = gensym "else" in
@@ -81,14 +79,14 @@ let rec compile_expr (stack_index : int) : expr -> directive list = function
     @ [Jmp continue_label] @ [Label else_label]
     @ compile_expr stack_index else_expr
     @ [Label continue_label]
-| Prim1 (f, arg) as exp ->
+| Prim1 (f, arg) ->
     compile_expr stack_index arg
-    @ compile_unary_primitive exp f
-| Prim2 (f, arg1, arg2) as exp ->
+    @ compile_unary_primitive f
+| Prim2 (f, arg1, arg2) ->
     compile_expr stack_index arg1
     @ [Mov (stack_address stack_index, Reg Rax)]
     @ compile_expr (stack_index - 8) arg2
-    @ compile_binary_primitive stack_index exp f
+    @ compile_binary_primitive stack_index f
 
 (* let rec compile_exp (stack_index : int) (exp : s_exp) : directive list =
   match exp with
@@ -155,13 +153,14 @@ let compile (program : expr) : string =
 
 let compile_to_file (program : string) : unit =
   let file = open_out "program.s" in
-  output_string file (compile (parse program));
+  output_string file (compile (Lisp_syntax.parse program));
   close_out file
 
 let compile_and_run (program : string) : string =
   compile_to_file program;
   ignore (Unix.system "nasm program.s -f elf64 -o program.o");
-  ignore (Unix.system "gcc program.o runtime.o -o program");
+  ignore (Unix.system "gcc -c runtime.c -o runtime.o -z execstack");
+  ignore (Unix.system "gcc program.o runtime.o -o program -z execstack");
   let inp = Unix.open_process_in "./program" in
   let r = input_line inp in
   close_in inp;
