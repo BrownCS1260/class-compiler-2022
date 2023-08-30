@@ -7,4 +7,5 @@ let parse (s : string) =
 let parse_file file =
   let inx = open_in file in
   let lexbuf = Lexing.from_channel inx in
-  Parse.main Lex.token lexbuf
+  let ast = Parse.main Lex.token lexbuf in
+  close_in inx ; ast

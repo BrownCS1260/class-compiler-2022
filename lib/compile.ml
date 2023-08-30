@@ -1,5 +1,7 @@
-open S_exp
+(* open S_exp *)
 open Asm
+open Ast
+(* open Util *)
 
 exception BadExpression of s_exp
 
@@ -31,7 +33,64 @@ let lf_to_bool : directive list =
     Or (Reg Rax, Imm bool_tag);
   ]
 
-let rec compile_exp (stack_index : int) (exp : s_exp) : directive list =
+let stack_address (index : int) : operand = MemOffset (Imm index, Reg Rsp)
+
+let compile_unary_primitive e = function
+| Add1 ->
+  [Add (Reg Rax, operand_of_num 1)]
+| Sub1 ->
+  [Sub (Reg Rax, operand_of_num 1)]
+| IsZero ->
+  [Cmp (Reg Rax, operand_of_num 0)] @ zf_to_bool
+| IsNum ->
+  [And (Reg Rax, Imm num_mask); Cmp (Reg Rax, Imm num_tag)] @ zf_to_bool
+| Not ->
+  [Cmp (Reg Rax, operand_of_bool false)] @ zf_to_bool
+
+let compile_binary_primitive stack_index e = function
+  | Plus ->
+      [Add (Reg Rax, stack_address stack_index)]
+  | Minus ->
+      [ Mov (Reg R8, Reg Rax)
+        ; Mov (Reg Rax, stack_address stack_index)
+        ; Sub (Reg Rax, Reg R8) ]
+  | Eq ->
+      [Cmp (stack_address stack_index, Reg Rax)]
+      @ zf_to_bool
+  | Lt ->
+      [Cmp (stack_address stack_index, Reg Rax)]
+      @ lf_to_bool
+
+let rec compile_expr (stack_index : int) : expr -> directive list = function
+| Num x ->
+    [Mov (Reg Rax, operand_of_num x)]
+| True ->
+    [Mov (Reg Rax, operand_of_bool true)]
+| False ->
+    [Mov (Reg Rax, operand_of_bool false)]
+| Nil ->
+    [Mov (Reg Rax, operand_of_nil)]
+| If (test_expr, then_expr, else_expr) ->
+    let then_label = gensym "then" in
+    let else_label = gensym "else" in
+    let continue_label = gensym "continue" in
+    compile_expr stack_index test_expr
+    @ [Cmp (Reg Rax, operand_of_bool false); Je else_label]
+    @ [Label then_label]
+    @ compile_expr stack_index then_expr
+    @ [Jmp continue_label] @ [Label else_label]
+    @ compile_expr stack_index else_expr
+    @ [Label continue_label]
+| Prim1 (f, arg) as exp ->
+    compile_expr stack_index arg
+    @ compile_unary_primitive exp f
+| Prim2 (f, arg1, arg2) as exp ->
+    compile_expr stack_index arg1
+    @ [Mov (stack_address stack_index, Reg Rax)]
+    @ compile_expr (stack_index - 8) arg2
+    @ compile_binary_primitive stack_index exp f
+
+(* let rec compile_exp (stack_index : int) (exp : s_exp) : directive list =
   match exp with
   | Num n -> [ Mov (Reg Rax, operand_of_num n) ]
   | Sym "true" -> [ Mov (Reg Rax, operand_of_bool true) ]
@@ -87,10 +146,10 @@ let rec compile_exp (stack_index : int) (exp : s_exp) : directive list =
       @ [ Mov (Reg R8, MemOffset (Reg Rsp, Imm stack_index)) ]
       @ [ Cmp (Reg R8, Reg Rax) ]
       @ zf_to_bool
-  | _ -> raise (BadExpression exp)
+  | _ -> raise (BadExpression exp) *)
 
-let compile (program : s_exp) : string =
-  [ Global "entry"; Label "entry" ] @ compile_exp (-8) program @ [ Ret ]
+let compile (program : expr) : string =
+  [ Global "entry"; Label "entry" ] @ compile_expr (-8) program @ [ Ret ]
   |> List.map string_of_directive
   |> String.concat "\n"
 
